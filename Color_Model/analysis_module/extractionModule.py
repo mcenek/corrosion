@@ -518,11 +518,12 @@ def extractHOG(imageIn, SHOW):
 
 #blur and erode away non cluster points iteratively
 def blurErode(image):
-    for i in range(10):
+    for i in range(2):
         blur = cv2.medianBlur(image,7)
         kernel = np.ones((3,3),np.uint8)
-        erosion = cv2.erode(blur,kernel,iterations=1)
-        image = erosion
+        #since the rust is black
+        dilate = cv2.dilate(blur,kernel,iterations=1)
+        image = dilate
         name = 'Iteration: ' + str(i)
         cv2.namedWindow(name,cv2.WINDOW_NORMAL)
         cv2.imshow(name,image)

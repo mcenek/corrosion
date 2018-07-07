@@ -97,7 +97,6 @@ def display(original,labels=None,SHOWFLAG=True):
         analyze.visualizeWT(original,show=True)
         return 1
 
-
     #if mode is gabor, extract gabor feature from image using several orientations
     elif gaborflag:
         orientations = 16
