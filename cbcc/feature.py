@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import os
 import time
+from sklearn import preprocessing
 
 
 # Gets the p points in a circle with a radius specified, this will be passed to get_texture
@@ -128,9 +129,14 @@ def get_texture(patch, pixel, radial):
 	pos_diff = np.array([diff[0][diff[0] > 0], diff[1][diff[1] > 0], diff[2][diff[2] > 0]])
 	neg_diff = np.array([diff[0][diff[0] < 0], diff[1][diff[1] < 0], diff[2][diff[2] < 0]])
 	# returning the sum of the square of each array for the different color channels and positive and negative
-	# differences
-	return [np.sum(pos_diff[0] ** 2), np.sum(pos_diff[1] ** 2), np.sum(pos_diff[2] ** 2), np.sum(neg_diff[0] ** 2),
-	        np.sum(neg_diff[1] ** 2), np.sum(neg_diff[2] ** 2)]
+	# differences normalized to 0 to 255
+	normal_1 = preprocessing.normalize(np.sum(pos_diff[0] ** 2)) * 255
+	normal_2 = preprocessing.normalize(np.sum(pos_diff[1] ** 2)) * 255
+	normal_3 = preprocessing.normalize(np.sum(pos_diff[2] ** 2)) * 255
+	normal_4 = preprocessing.normalize(np.sum(neg_diff[0] ** 2)) * 255
+	normal_5 = preprocessing.normalize(np.sum(neg_diff[1] ** 2)) * 255
+	normal_6 = preprocessing.normalize(np.sum(neg_diff[2] ** 2)) * 255
+	return [normal_1, normal_2, normal_3, normal_4, normal_5, normal_6]
 
 
 def run_pixels(image, data):
