@@ -1,3 +1,5 @@
+# TODO: Add normalization to the texture features, so the imshow will actually show the differences in texture
+
 import cv2
 import feature
 import sys
