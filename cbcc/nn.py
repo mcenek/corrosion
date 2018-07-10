@@ -80,11 +80,11 @@ if __name__ == '__main__':
 		# softsign activation is x/(abs(x) + 1)
 		model.add(Dense(100, activation='tanh', input_dim=12, kernel_initializer='uniform'))
 		# dropout randomly sets input units to 0 during training time to help prevent overfitting
-		# model.add(Dropout(0.65))
+		model.add(Dropout(0.65))
 
 		# the hidden layer is 100 neurons with softsign activation
 		model.add(Dense(100, activation='tanh', kernel_initializer='uniform'))
-		# model.add(Dropout(0.65))
+		model.add(Dropout(0.65))
 
 		# the output layer is only one neuron, for binary classification, and uses softsign for the activation
 		model.add(Dense(1, activation='tanh', kernel_initializer='uniform'))
