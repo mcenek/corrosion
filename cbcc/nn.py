@@ -19,7 +19,7 @@ def train(image, network, pixels, v):
 	labels = pixels[:, 0].reshape(-1, 1)
 
 	# running the training using Keras
-	return network.fit(data, labels, epochs=5000, batch_size=150 , verbose=v)
+	return network.fit(data, labels, epochs=2000, batch_size=150, verbose=v)
 
 
 def test(image, network, pixels):
@@ -79,11 +79,11 @@ if __name__ == '__main__':
 		# the input layer is a dense, fully connected, layer with 100 neurons with tanh activation and 12 inputs
 		model.add(Dense(100, activation='tanh', input_dim=12, kernel_initializer='uniform'))
 		# dropout randomly sets input units to 0 during training time to help prevent overfitting
-		model.add(Dropout(0.7))
+		model.add(Dropout(0.65))
 
 		# the hidden layer is 100 neurons with tanh activation
 		model.add(Dense(100, activation='tanh', kernel_initializer='uniform'))
-		model.add(Dropout(0.7))
+		model.add(Dropout(0.65))
 
 		# the output layer is only one neuron, for binary classification, and uses tanh for the activation
 		model.add(Dense(1, activation='tanh', kernel_initializer='uniform'))
