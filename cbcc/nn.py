@@ -76,21 +76,20 @@ if __name__ == '__main__':
 		# using a simple sequential neural network
 		model = Sequential()
 
-		# the input layer is a dense, fully connected, layer with 100 neurons with softsign activation and 12 inputs
-		# softsign activation is x/(abs(x) + 1)
+		# the input layer is a dense, fully connected, layer with 100 neurons with tanh activation and 12 inputs
 		model.add(Dense(100, activation='tanh', input_dim=12, kernel_initializer='uniform'))
 		# dropout randomly sets input units to 0 during training time to help prevent overfitting
-		model.add(Dropout(0.65))
+		model.add(Dropout(0.7))
 
-		# the hidden layer is 100 neurons with softsign activation
+		# the hidden layer is 100 neurons with tanh activation
 		model.add(Dense(100, activation='tanh', kernel_initializer='uniform'))
-		model.add(Dropout(0.65))
+		model.add(Dropout(0.7))
 
-		# the output layer is only one neuron, for binary classification, and uses softsign for the activation
+		# the output layer is only one neuron, for binary classification, and uses tanh for the activation
 		model.add(Dense(1, activation='tanh', kernel_initializer='uniform'))
 
-		# compile the network with loss, or what to minimize, being the mean squared error, and the optimizer,
-		# or what the network uses to improve, being stochastic gradient descent, and what to report as the
+		# compile the network with loss, or what to minimize, being the binary crossentropy, and the optimizer,
+		# or what the network uses to improve, being adadelta, and what to report as the
 		# performance of the network being the accuracy
 		model.compile(loss='binary_crossentropy', optimizer='adadelta', metrics=['accuracy'])
 
