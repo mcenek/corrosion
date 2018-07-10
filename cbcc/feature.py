@@ -130,30 +130,31 @@ def get_texture(patch, pixel, radial):
 	neg_diff = np.array([diff[0][diff[0] < 0], diff[1][diff[1] < 0], diff[2][diff[2] < 0]])
 	# returning the sum of the square of each array for the different color channels and positive and negative
 	# differences normalized to 0 to 255
-	normal_1 = preprocessing.normalize(np.sum(pos_diff[0] ** 2)) * 255
-	normal_2 = preprocessing.normalize(np.sum(pos_diff[1] ** 2)) * 255
-	normal_3 = preprocessing.normalize(np.sum(pos_diff[2] ** 2)) * 255
-	normal_4 = preprocessing.normalize(np.sum(neg_diff[0] ** 2)) * 255
-	normal_5 = preprocessing.normalize(np.sum(neg_diff[1] ** 2)) * 255
-	normal_6 = preprocessing.normalize(np.sum(neg_diff[2] ** 2)) * 255
-	return [normal_1, normal_2, normal_3, normal_4, normal_5, normal_6]
+	sum_1 = np.sum(pos_diff[0] ** 2)
+	sum_2 = np.sum(pos_diff[1] ** 2)
+	sum_3 = np.sum(pos_diff[2] ** 2)
+	sum_4 = np.sum(neg_diff[0] ** 2)
+	sum_5 = np.sum(neg_diff[1] ** 2)
+	sum_6 = np.sum(neg_diff[2] ** 2)
+
+	return [sum_1, sum_2, sum_3, sum_4, sum_5, sum_6]
 
 
 def run_pixels(image, data):
 	h, w = image.shape[:2]  # getting the height and width of the image for the patch calculations
 	radial = radial_points()
 	return_array = []
+	texture = []
+	color = []
 	coordinates = data[:, 1:]  # removing the label for the data
 	for coordinate in coordinates:
-		array = []
 		patch, pixel = get_patch(coordinate, image, h, w)
 		descriptor_color = k_means_color(patch)
 		descriptor_texture = get_texture(patch, pixel, radial)
-		array.extend(descriptor_texture)
-		array.extend(descriptor_color[0])
-		array.extend(descriptor_color[1])
-		# array.extend(descriptor_color[2]) for running with 3 dominate colors
-		return_array.append(array)
+		texture.append(descriptor_texture)
+		color.append(np.concatenate((descriptor_color[0], descriptor_color[1])))
+	normal = preprocessing.normalize(texture, axis=0) * 1000
+	return_array.extend(np.concatenate((normal, color), axis=1))
 	return np.array(return_array)
 
 
@@ -161,6 +162,8 @@ def run_image(image):
 	h, w = image.shape[:2]  # getting the height and width of the image for the patch calculations
 	radial = radial_points()
 	return_array = []
+	texture = []
+	color = []
 	for i in range(h):
 		for j in range(w):
 			coordinate = (i, j)
@@ -168,11 +171,10 @@ def run_image(image):
 			patch, pixel = get_patch(coordinate, image, h, w)
 			descriptor_color = k_means_color(patch)
 			descriptor_texture = get_texture(patch, pixel, radial)
-			array.extend(descriptor_texture)
-			array.extend(descriptor_color[0])
-			array.extend(descriptor_color[1])
-			# array.extend(descriptor_color[2]) For running with 3 dominate colors
-			return_array.append(array)
+			texture.append(descriptor_texture)
+			color.append(np.concatenate((descriptor_color[0], descriptor_color[1])))
+	normal = preprocessing.normalize(texture, axis=0) * 1000
+	return_array.extend(np.concatenate((normal, color), axis=1))
 	return np.array(return_array)
 
 
@@ -185,19 +187,20 @@ def run_image(image):
 #
 #
 # if __name__ == '__main__':
-# 	path = "c:\\users\\dakot\\Desktop\\metal scraps\\"
+# 	path = "b:\\cbcc\\defects1\\image047.jpg"
 # 	start_time = time.time()
 # 	radial = radial_points()
-# 	images = init(path)
+# 	# images = init(path)
+# 	image = cv2.imread(path)
 # 	t_time = time.time()
 # 	print("Images loaded:" + str(t_time - start_time))
 # 	total_time = t_time
-# 	for image in images:
-# 		h, w = image.shape[:2]
-# 		for i in range(0, h):
-# 			for j in range(0, w):
-# 				center_pixel = (i, j)
-# 				patch, pixel = get_patch(center_pixel, image, h, w)
-# 				descriptor_color = get_dominate_color(patch)
-# 				descriptor_texture = get_texture(patch, pixel, radial)
+# 	# for image in images:
+# 	h, w = image.shape[:2]
+# 	for i in range(0, h):
+# 		for j in range(0, w):
+# 			center_pixel = (i, j)
+# 			patch, pixel = get_patch(center_pixel, image, h, w)
+# 			descriptor_color = get_dominate_color(patch)
+# 			descriptor_texture = get_texture(patch, pixel, radial)
 # 	print("Final time: " + str(time.time() - total_time))
