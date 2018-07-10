@@ -1,4 +1,5 @@
 How to run each python script:
+# This needs to be run in python 3
 
 feature.py:
 
