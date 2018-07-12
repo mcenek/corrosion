@@ -23,7 +23,7 @@ def blurErode(image):
     return image
 
 if __name__ == '__main__':
-    out_dir = 'smoothed'
+    out_dir = 'smooth_images'
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
