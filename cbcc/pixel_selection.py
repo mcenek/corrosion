@@ -10,10 +10,10 @@ def split_pixels(label):
 	negative = []
 	for i in range(h):
 		for j in range(w):
-			if list(label[i, j]) == [0, 0, 0]:
-				positive.append((i, j))
-			else:
+			if list(label[i, j]) == [255, 255, 255]:
 				negative.append((i, j))
+			else:
+				positive.append((i, j))
 	return np.array(positive), np.array(negative)
 
 
@@ -24,7 +24,7 @@ def get_pixels(image):
 	np.random.shuffle(negative)
 	labeled_positive = np.insert(positive, 0, 1, axis=1)
 	labeled_negative = np.insert(negative, 0, -1, axis=1)
-	pixels = np.concatenate((labeled_positive[:100], labeled_negative[:300])).astype(int)
+	pixels = np.concatenate((labeled_positive[:200], labeled_negative[:200])).astype(int)
 	return pixels
 
 
