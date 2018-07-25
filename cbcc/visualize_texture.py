@@ -14,12 +14,9 @@ if __name__ == '__main__':
 		print("Extracting features")
 		features = feature.run_image(image)
 		textures = features[:, :6]
-		print(textures.shape)
-		test = textures[:, :3] + textures[:, 3:]
-		test = test.reshape(shape)
-		test = np.sum(test, axis=2)
-		print(test)
-		plt.imshow(test, cmap='gray_r', interpolation='nearest')
+		print(textures[:, 0].shape)
+		clipped = np.clip(textures[:, 0], 0, 2000)
+		plt.boxplot(clipped, vert=False)
 		plt.show()
 	else:
 		print("Please add a path to an image")
