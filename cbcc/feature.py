@@ -48,6 +48,7 @@ def get_patch(pixel, image, height, width):
 		corner_col = 0  # Image, meaning the column coordinate for the patch will have to be 0
 		center_col = pixel[1]  # same as the row
 	diameter += 1  # Added 1 for the center pixel
+
 	return image[corner_row:(corner_row + diameter), corner_col:(corner_col + diameter)], (center_row, center_col)
 
 
@@ -67,12 +68,12 @@ def k_means_color(patch):
 	ret, label, center = cv2.kmeans(z, k, None, criteria, 5, cv2.KMEANS_RANDOM_CENTERS)
 	center = np.uint8(center)  # Center will contain the Dominant Colors in their respective color channels
 	# i.e [[DCb, DCg, DCr], [DCb, DCg, DC3r]] with k = 2
-	return center
+	return center.flatten()
 
 
 # Returns the dominate colors in a patch, which are the average colors based upon what is the center of clusters that
 # are built from the rgb values in the patch, patch is a 3d array which is 50x50x3
-# TODO: use eigenvectors, don't use until it is using that method
+
 def get_dominate_color(patch):
 	b_root = patch[:, :, 0]
 	g_root = patch[:, :, 1]
@@ -85,14 +86,30 @@ def get_dominate_color(patch):
 	b_child_0 = b_root[b_root > b_root_mean]
 	b_child_1 = b_root[b_root <= b_root_mean]
 
+	if b_child_0.size == 0:
+		half = b_root.size // 2
+		b_child_0 = b_root[:half]
+		b_child_1 = b_root[half:]
+
 	g_child_0 = g_root[g_root > g_root_mean]
 	g_child_1 = g_root[g_root <= g_root_mean]
+
+	if g_child_0.size == 0:
+		half = g_root.size // 2
+		b_child_0 = g_root[:half]
+		b_child_1 = g_root[half:]
 
 	r_child_0 = r_root[r_root > r_root_mean]
 	r_child_1 = r_root[r_root <= r_root_mean]
 
+	if r_child_0.size == 0:
+		half = r_root.size // 2
+		b_child_0 = r_root[:half]
+		b_child_1 = r_root[half:]
+
 	center = [np.mean(b_child_0), np.mean(g_child_0), np.mean(r_child_0), np.mean(b_child_1), np.mean(g_child_1),
 	          np.mean(r_child_1)]
+
 	return center
 
 
@@ -129,7 +146,7 @@ def get_texture(patch, pixel, radial):
 	pos_diff = np.array([diff[0][diff[0] > 0], diff[1][diff[1] > 0], diff[2][diff[2] > 0]])
 	neg_diff = np.array([diff[0][diff[0] < 0], diff[1][diff[1] < 0], diff[2][diff[2] < 0]])
 	# returning the sum of the square of each array for the different color channels and positive and negative
-	# differences normalized to 0 to 255
+	# differences
 	sum_1 = np.sum(pos_diff[0] ** 2)
 	sum_2 = np.sum(pos_diff[1] ** 2)
 	sum_3 = np.sum(pos_diff[2] ** 2)
@@ -152,9 +169,9 @@ def run_pixels(image, data):
 		descriptor_color = k_means_color(patch)
 		descriptor_texture = get_texture(patch, pixel, radial)
 		texture.append(descriptor_texture)
-		color.append(np.concatenate((descriptor_color[0], descriptor_color[1])))
-	normal = preprocessing.normalize(texture, axis=0) * 1000
-	return_array.extend(np.concatenate((normal, color), axis=1))
+		color.append(descriptor_color)
+	clipped = np.clip(texture, 0, 2000)
+	return_array.extend(np.concatenate((clipped, color), axis=1))
 	return np.array(return_array)
 
 
@@ -172,9 +189,9 @@ def run_image(image):
 			descriptor_color = k_means_color(patch)
 			descriptor_texture = get_texture(patch, pixel, radial)
 			texture.append(descriptor_texture)
-			color.append(np.concatenate((descriptor_color[0], descriptor_color[1])))
-	normal = preprocessing.normalize(texture, axis=0) * 1000
-	return_array.extend(np.concatenate((normal, color), axis=1))
+			color.append(descriptor_color)
+	clipped = np.clip(texture, 0, 2000)
+	return_array.extend(np.concatenate((clipped, color), axis=1))
 	return np.array(return_array)
 
 
