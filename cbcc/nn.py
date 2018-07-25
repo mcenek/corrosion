@@ -19,7 +19,7 @@ def train(image, network, pixels, v):
 	labels = pixels[:, 0].reshape(-1, 1)
 
 	# running the training using Keras
-	return network.fit(data, labels, epochs=2000, batch_size=150, verbose=v)
+	return network.fit(data, labels, epochs=1000, batch_size=250, verbose=v)
 
 
 def test(image, network, pixels):
@@ -43,6 +43,7 @@ def generate_prediction(image, network):
 	cv2.imshow("Result", grayscale)
 	cv2.waitKey(0)
 	cv2.destroyAllWindows()
+	return grayscale
 
 
 # takes in an array of 0's and 1's and returns an unsigned 8 bit int for to show as a grayscale image
@@ -77,13 +78,13 @@ if __name__ == '__main__':
 		model = Sequential()
 
 		# the input layer is a dense, fully connected, layer with 100 neurons with tanh activation and 12 inputs
-		model.add(Dense(100, activation='tanh', input_dim=12, kernel_initializer='uniform'))
+		model.add(Dense(10, activation='tanh', input_dim=12, kernel_initializer='uniform'))
 		# dropout randomly sets input units to 0 during training time to help prevent overfitting
-		model.add(Dropout(0.65))
+		model.add(Dropout(0.35))
 
 		# the hidden layer is 100 neurons with tanh activation
-		model.add(Dense(100, activation='tanh', kernel_initializer='uniform'))
-		model.add(Dropout(0.65))
+		model.add(Dense(8, activation='tanh', kernel_initializer='uniform'))
+		model.add(Dropout(0.35))
 
 		# the output layer is only one neuron, for binary classification, and uses tanh for the activation
 		model.add(Dense(1, activation='tanh', kernel_initializer='uniform'))
@@ -108,7 +109,8 @@ if __name__ == '__main__':
 	elif len(sys.argv) == 3:
 		model = keras.models.load_model(sys.argv[2])
 		base_image = cv2.imread(sys.argv[1])
-		generate_prediction(base_image, model)
+		gen_image = generate_prediction(base_image, model)
+		cv2.imwrite((sys.argv[1][:-4] + "_prediction_" + sys.argv[2][:-3] + ".jpg"), gen_image)
 
 	else:
 		print("Please use the correct input of:")
