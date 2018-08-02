@@ -1,26 +1,11 @@
 import numpy as np
 import cv2
-import os
-import time
-from sklearn import preprocessing
-
-
-# Gets the p points in a circle with a radius specified, this will be passed to get_texture
-def radial_points():
-	radius = 3  # Used to get the neighbors, needs to be smaller than the patch radius
-	p = 8  # total number of neighbors selected
-	k = np.array(list(range(1, p + 1)))  # k is the index of the neighbors, 1 through p, the range function is [a, b)
-	# which is why i use p+1
-	a_k = [((k - 1) * 2 * np.pi) / p]  # a_k is the radial transformation of the k indexes
-	x = radius * np.cos(a_k)  # The x coordinate for the neighbors
-	y = -radius * np.sin(a_k)  # The y coordinate for the neighbors
-	return [x, y]
 
 
 # Get patch returns a cropped portion of the image provided using the globally defined radius
 # pixel is a tuple of (row, column) which is the row number and column number of the pixel in the picture
 # image is a cv2 image
-def get_patch(pixel, image, height, width):
+def get_patch(pixel, image, height, width, sd_matrix):
 	radius = 6  # Used for patch size
 	diameter = 2 * radius
 	# max_row, max_col, not_used = np.array(image).shape Having this was making it super slow, so just manually put
@@ -29,27 +14,21 @@ def get_patch(pixel, image, height, width):
 	max_col = width
 	if pixel[0] >= (max_row - radius):
 		corner_row = max_row - (diameter + 2)
-		center_row = radius + pixel[0] - (max_row - (radius + 1))
 	elif pixel[0] >= radius:
 		corner_row = pixel[0] - radius
-		center_row = radius
 	else:  # With the row coordinate being less than the radius of the patch, it has to be at the top of the image
 		corner_row = 0  # meaning the row coordinate for the patch will have to be 0
-		center_row = pixel[0]  # Because the pixel in question is less than the radius, the center of the patch
-	# should be the same as the pixel coming in as it should be less than 11
 
 	if pixel[1] >= (max_col - radius):
 		corner_col = max_col - (diameter + 2)
-		center_col = radius + pixel[1] - (max_col - (radius + 1))
 	elif pixel[1] >= radius:
 		corner_col = pixel[1] - radius
-		center_col = radius
 	else:  # With the column coordinate being less than the radius of the patch, it has to be in the left side of the
 		corner_col = 0  # Image, meaning the column coordinate for the patch will have to be 0
-		center_col = pixel[1]  # same as the row
 	diameter += 1  # Added 1 for the center pixel
 
-	return image[corner_row:(corner_row + diameter), corner_col:(corner_col + diameter)], (center_row, center_col)
+	return image[corner_row:(corner_row + diameter), corner_col:(corner_col + diameter)], sd_matrix[corner_row:(
+			corner_row + diameter), corner_col:(corner_col + diameter)]
 
 
 def k_means_color(patch):
@@ -113,85 +92,80 @@ def get_dominate_color(patch):
 	return center
 
 
-# Uses a modified version of the method detailed in the article "Vision-Based Corrosion Detection Assisted by a
-# Micro-Aerial Vehicle in a Vessel Inspection Application" by Ortiz et. Al.. It describes using the RGB values to
-# create a texture feature vector based on the difference in color from the center pixel and the neighbors selected
-# in a circle around the pixel in question. p neighbors are selected in a similar fashion to the article,
-# expect instead of using bilinear interpolation, I just rounded the x and y values to get a proper index for the
-# patch matrix.
-def get_texture(patch, pixel, radial):
-	c_b, c_g, c_r = patch[pixel[0], pixel[1]]  # The rgb values of the center pixel
-	neighbor = [[], [], []]
-	if pixel[0] != 6 or pixel[1] != 6:  # With the center not being the actual center,
-		# neighbors are chosen at random
-		x = np.random.choice(12, 8)  # Very Important!! This needs to go to the size of the patch,
-		y = np.random.choice(12, 8)  # which is done manually, so if the size of the patch is changed this
-	#  needs to be as well
-	else:
-		x = np.round(pixel[0] + radial[0])  # pixel is the x & y coordinate for the central pixel, which is the offset
-		y = np.round(pixel[1] + radial[1])  # for the neighbors, which is then rounded off so it is a whole number
-		x = x.astype(int).flatten()
-		y = y.astype(int).flatten()
-	for i in range(len(x)):  # getting the rgb values for all of the neighbors
-		b, g, r = patch[x[i], y[i]]
-		neighbor[0].append(r)
-		neighbor[1].append(g)
-		neighbor[2].append(b)
-	# remaking the neighbors into a numpy array, and changing them to a 32 bit int instead of the 8 bit int of rgb
-	# values so they can be negative
-	neighbor = np.array(neighbor).astype(int)
-	# getting the difference from the neighbors color and the center pixels color
-	diff = [neighbor[0] - c_r, neighbor[1] - c_g, neighbor[2] - c_b]
-	# splitting the difference into positive results and negative results
-	pos_diff = np.array([diff[0][diff[0] > 0], diff[1][diff[1] > 0], diff[2][diff[2] > 0]])
-	neg_diff = np.array([diff[0][diff[0] < 0], diff[1][diff[1] < 0], diff[2][diff[2] < 0]])
-	# returning the sum of the square of each array for the different color channels and positive and negative
-	# differences
-	sum_1 = np.sum(pos_diff[0] ** 2)
-	sum_2 = np.sum(pos_diff[1] ** 2)
-	sum_3 = np.sum(pos_diff[2] ** 2)
-	sum_4 = np.sum(neg_diff[0] ** 2)
-	sum_5 = np.sum(neg_diff[1] ** 2)
-	sum_6 = np.sum(neg_diff[2] ** 2)
+def get_texture(sd_patch):
+	blue = sd_patch[:, :, 0]
+	green = sd_patch[:, :, 1]
+	red = sd_patch[:, :, 2]
 
-	return [sum_1, sum_2, sum_3, sum_4, sum_5, sum_6]
+	r_values, r_counts = np.unique(red, return_counts=True)
+	b_values, b_counts = np.unique(blue, return_counts=True)
+	g_values, g_counts = np.unique(green, return_counts=True)
 
 
-def run_pixels(image, data):
+	r_neg_len = len(r_values[r_values < 0])
+	b_neg_len = len(b_values[b_values < 0])
+	g_neg_len = len(g_values[g_values < 0])
+
+	r_neg_count = r_counts[:r_neg_len]
+	r_pos_count = r_counts[r_neg_len:]
+
+	r_neg_divisor = np.sum(r_neg_count)
+	r_pos_divisor = np.sum(r_pos_count)
+
+	b_neg_count = b_counts[:b_neg_len]
+	b_pos_count = b_counts[b_neg_len:]
+
+	b_neg_divisor = np.sum(b_neg_count)
+	b_pos_divisor = np.sum(b_pos_count)
+
+	g_neg_count = g_counts[:g_neg_len]
+	g_pos_count = g_counts[g_neg_len:]
+
+	g_neg_divisor = np.sum(g_neg_count)
+	g_pos_divisor = np.sum(g_pos_count)
+
+	r_neg_prob = r_neg_count / r_neg_divisor
+	r_pos_prob = r_pos_count / r_pos_divisor
+
+	b_neg_prob = b_neg_count / b_neg_divisor
+	b_pos_prob = b_pos_count / b_pos_divisor
+
+	g_neg_prob = g_neg_count / g_neg_divisor
+	g_pos_prob = g_pos_count / g_pos_divisor
+	return np.array([np.sum(r_neg_prob**2), np.sum(r_pos_prob**2), np.sum(b_neg_prob**2), np.sum(b_pos_prob**2),
+	                 np.sum(g_neg_prob**2), np.sum(g_pos_prob**2)])
+
+
+def run_pixels(image, data, sd_matrix):
 	h, w = image.shape[:2]  # getting the height and width of the image for the patch calculations
-	radial = radial_points()
 	return_array = []
 	texture = []
 	color = []
 	coordinates = data[:, 1:]  # removing the label for the data
 	for coordinate in coordinates:
-		patch, pixel = get_patch(coordinate, image, h, w)
+		patch, sd_patch = get_patch(coordinate, image, h, w, sd_matrix)
 		descriptor_color = k_means_color(patch)
-		descriptor_texture = get_texture(patch, pixel, radial)
+		descriptor_texture = get_texture(sd_patch)
 		texture.append(descriptor_texture)
 		color.append(descriptor_color)
-	clipped = np.clip(texture, 0, 2000)
-	return_array.extend(np.concatenate((clipped, color), axis=1))
+	return_array.extend(np.concatenate((texture, color), axis=1))
 	return np.array(return_array)
 
 
-def run_image(image):
+def run_image(image, sd_matrix):
 	h, w = image.shape[:2]  # getting the height and width of the image for the patch calculations
-	radial = radial_points()
 	return_array = []
 	texture = []
 	color = []
 	for i in range(h):
 		for j in range(w):
 			coordinate = (i, j)
-			array = []
-			patch, pixel = get_patch(coordinate, image, h, w)
+			patch, sd_patch = get_patch(coordinate, image, h, w, sd_matrix)
 			descriptor_color = k_means_color(patch)
-			descriptor_texture = get_texture(patch, pixel, radial)
+			descriptor_texture = get_texture(sd_patch)
 			texture.append(descriptor_texture)
 			color.append(descriptor_color)
-	clipped = np.clip(texture, 0, 2000)
-	return_array.extend(np.concatenate((clipped, color), axis=1))
+	return_array.extend(np.concatenate((texture, color), axis=1))
 	return np.array(return_array)
 
 
