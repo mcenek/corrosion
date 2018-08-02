@@ -13,9 +13,9 @@ import pixel_selection
 
 # This is used when calling the nn.py with multiple data sets, as it is for training the neural network with the
 # select pixels
-def train(image, pixels, v, color, texture, combine):
+def train(image, pixels, v, color, texture, combine, sd_matrix):
 	# The features will be [6 texture, 6 color], see feature.py to see what the descriptors are
-	data = feature.run_pixels(image, pixels)
+	data = feature.run_pixels(image, pixels, sd_matrix)
 
 	# The first column of each pixel is the 1 or 0 for rust or no rust respectively
 	labels = pixels[:, 0].reshape(-1, 1)
@@ -23,19 +23,19 @@ def train(image, pixels, v, color, texture, combine):
 	color_data = data[:, 6:]
 
 	# running the training using Keras
-	color.fit(color_data, labels, epochs=500, batch_size=250, verbose=v)
+	color.fit(color_data, labels, epochs=1000, batch_size=250, verbose=v)
 	texture.fit(texture_data, labels, epochs=2000, batch_size=250, verbose=v)
 	color_return = color.predict_on_batch(color_data)
 	texture_return = texture.predict_on_batch(texture_data)
 	combine_data = np.concatenate((color_return, texture_return), axis=1)
-	combine.fit(combine_data, labels, epochs=500, batch_size=250, verbose=v)
+	combine.fit(combine_data, labels, epochs=1000, batch_size=250, verbose=v)
 	return
 
 
-def generate_prediction(image, color, texture, combine):
+def generate_prediction(image, color, texture, combine, sd_matrix):
 	shape = image.shape[:2]
 	print("Getting features...")
-	data = feature.run_image(image)
+	data = feature.run_image(image, sd_matrix)
 	texture_data = data[:, :6]
 	color_data = data[:, 6:]
 	print("Running networks...")
@@ -65,24 +65,25 @@ def get_grayscale(array):
 	return np.array(temp).reshape((h, w)).astype(np.uint8)
 
 
-def update_model(image, train_pix, color, texture, combine):
+def update_model(image, train_pix, color, texture, combine, matrix):
 
-	return train(image, train_pix, 0, color, texture, combine)
+	return train(image, train_pix, 0, color, texture, combine, matrix)
 
 
 if __name__ == '__main__':
-	if len(sys.argv) == 3:
-		# TODO: add for the 3 models
+	if len(sys.argv) == 4:
 		color_nn = keras.models.load_model("color_" + sys.argv[2])
 		texture_nn = keras.models.load_model("texture_" + sys.argv[2])
 		combine_nn = keras.models.load_model("combine_" + sys.argv[2])
+		sd_matrix = np.load(sys.argv[3])
 		base_image = cv2.imread(sys.argv[1])
-		gen_image = generate_prediction(base_image, color_nn, texture_nn, combine_nn)
+		gen_image = generate_prediction(base_image, color_nn, texture_nn, combine_nn, sd_matrix)
 		cv2.imwrite((sys.argv[1][:-4] + "_prediction_" + sys.argv[2][:-3] + ".png"), gen_image)
-	elif len(sys.argv) == 4:
+	elif len(sys.argv) == 5:
 		ground_truth = cv2.imread(sys.argv[1])
 		image = cv2.imread(sys.argv[2])
 		network_name = sys.argv[3]
+		sd_matrix = np.load(sys.argv[4])
 		pixels = pixel_selection.get_pixels(ground_truth)
 
 		# using a simple sequential neural network
@@ -119,7 +120,7 @@ if __name__ == '__main__':
 		texture_nn.compile(loss='binary_crossentropy', optimizer='adadelta', metrics=['accuracy'])
 		combine_nn.compile(loss='binary_crossentropy', optimizer='adadelta', metrics=['accuracy'])
 
-		train(image, pixels, 1, color_nn, texture_nn, combine_nn)
+		train(image, pixels, 1, color_nn, texture_nn, combine_nn, sd_matrix)
 
 		color_nn.save("color_" + network_name)
 		texture_nn.save("texture_" + network_name)
