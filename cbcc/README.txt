@@ -1,5 +1,4 @@
 How to run each python script:
-# This needs to be run in python 3
 
 feature.py:
 
@@ -26,16 +25,21 @@ pixel_selection.py
 
 	python pixel_selection.py <groundtruth.jpg>
 
+
 split_nn.py:
 
-	python split_nn.py <groundtruth.jpg> <image.jpg> "Network.h5"  # To train a new network
+	python split_nn.py <groundtruth.jpg> <image.jpg> "Network.h5" <sdmatrix.npy> # To train a new network
 	or
-	python split_nn.py <image.jpg> <network.h5>  # To run a network on an image
+	python split_nn.py <image.jpg> <network.h5>  <sdmatrix.npy> # To run a network on an image
 	# Note: The network name provided must just be the network name, nothing before or after, as the there are actually three networks that will be created
 	# by this program, all of which will be prefixed with, "color_" "texture_" or "combine_", so if the input is not exactly the same as when you created
 	# the network, then it will be unable to load the networks properly
 
 mass_train_split.py:
 
-	python mass_train_split.py <groundtruths/> <images/> <network.h5>
+	python mass_train_split.py <groundtruths/> <images/> <network.h5> <sdmatrices/>
 	# Same notes as with split_nn.py and mass_train.py
+
+signed_differences.py:
+
+	python signed_differences.py <images/>
