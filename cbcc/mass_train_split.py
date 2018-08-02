@@ -17,6 +17,15 @@ def init(filepath):
 	return images
 
 
+def load_matricies(filepath):
+	matrix_path = []
+	for matrix in os.walk(filepath):
+		for i in range(len(matrix[2])):
+			matrix_path.append(filepath + "\\" + matrix[2][i])
+	matrices = np.array([np.load(i) for i in matrix_path])
+	return matrices
+
+
 def get_pixels(images):
 	pixels = []
 	for image in images:
@@ -25,13 +34,14 @@ def get_pixels(images):
 
 
 if __name__ == '__main__':
-	if len(sys.argv) == 4:
+	if len(sys.argv) == 5:
 		print("Loading images...")
 		groundtruths = init(sys.argv[1])
 		images = init(sys.argv[2])
 		print("Getting pixels")
 		pixel = get_pixels(groundtruths)
 		network_name = sys.argv[3]
+		matricies = load_matricies(sys.argv[4])
 		color_nn = keras.models.load_model("color_" + network_name)
 		texture_nn = keras.models.load_model("texture_" + network_name)
 		combine_nn = keras.models.load_model("combine_" + network_name)
@@ -42,7 +52,7 @@ if __name__ == '__main__':
 		sys.stdout.flush()
 		sys.stdout.write("\b" * (toolbar_width + 1))  # return to start of line, after '['
 		for i in range(len(groundtruths)):
-			split_nn.update_model(images[i], pixel[i], color_nn, texture_nn, combine_nn)
+			split_nn.update_model(images[i], pixel[i], color_nn, texture_nn, combine_nn, matricies[i])
 			sys.stdout.write("-")
 			sys.stdout.flush()
 		sys.stdout.write("\n")
