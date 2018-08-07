@@ -86,12 +86,25 @@ def display(original,labels=None,SHOWFLAG=True):
     #if mode is dominant colors:
     elif domcolorflag:
 
+        canvas = np.zeros(original.shape)
+        h,w,d = canvas.shape
+        for i in range(5,h-6):
+            for j in range(5,w-6):
+                centers = f.k_means_color(original[i-5:i+5,j-5:j+5,:])
+                canvas[i,j] = centers[0]
+
+        cv2.imshow('original image',original)
+        cv2.imshow('dominant color image',canvas.astype(np.uint8))
+        cv2.waitKey(0)
+
+        '''
         centers = f.k_means_color(original)
         cv2.imshow('original image',original)
         for i,c in enumerate(centers):
             tmp = np.full((100,100,3),c)
             cv2.imshow('dom color ' + str(i),tmp)
         cv2.waitKey(0)
+        '''
 
         return 1
 

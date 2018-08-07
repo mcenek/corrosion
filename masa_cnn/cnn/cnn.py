@@ -142,7 +142,8 @@ def main(unused_argv):
             #net = tf.InteractiveSession(config=tf.ConfigProto(log_device_placement=True))
             #with tf.Session(config=tf.ConfigProto(allow_soft_placement=True,log_device_placement=True)) as sess:
             with tf.Session() as sess:
-                training_writer = tf.summary.FileWriter('./log',sess.graph)
+                training_writer = tf.summary.FileWriter('./log/training',sess.graph)
+                testing_writer = tf.summary.FileWriter('./log/testing',sess.graph)
                 sess.run(init)
 
                 #initialize log directory, model directory, and default accuracy
@@ -158,20 +159,23 @@ def main(unused_argv):
                 for epoch in range(constants.CNN_EPOCHS):
                     #get an image batch and train each model separately
                     batch_x,batch_y = featureReader.getPixelBatch(constants.BATCH_SIZE)
+                    merged1 = tf.summary.merge_all()
                     if epoch < 1000:
-                        sess.run([optimizer1],feed_dict={x1: batch_x, y1: batch_y})
+                        summary = sess.run([merged1,optimizer1],feed_dict={x1: batch_x, y1: batch_y})
                     else:
-                        sess.run([optimizer2],feed_dict={x1: batch_x, y1: batch_y})
+                        summary = sess.run([merged1,optimizer2],feed_dict={x1: batch_x, y1: batch_y})
+
+                    training_writer.add_summary(summary[0],epoch)
 
                     #evaluate the model separately using a test set
                     if epoch % 1 == 0:
 
                         #merge summaries
-                        merged = tf.summary.merge_all()
                         #evaluate test set
-                        eval_x,eval_y = featureReader.getPixelBatch(constants.BATCH_SIZE)
-                        summary, acc1 = sess.run([merged,accuracy1],feed_dict={x1:eval_x,y1:eval_y})
-                        training_writer.add_summary(summary,epoch)
+                        merged2 = tf.summary.merge_all()
+                        eval_x,eval_y = featureReader.getTestBatch(constants.BATCH_SIZE)
+                        summary, acc1 = sess.run([merged2,accuracy1],feed_dict={x1:eval_x,y1:eval_y})
+                        testing_writer.add_summary(summary,epoch)
 
                         #save the model if it holds the highest accuracy or is tied for highest accuracy
                         if(acc1 >= acc):

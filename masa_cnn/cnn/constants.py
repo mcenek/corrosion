@@ -6,6 +6,8 @@ LOG_DIR = "./logs"             #Directory where the logs would be stored for vis
 #Neural network constants
 CAT_DIR = "../Corrosion_Dataset/defects/"
 LABEL_DIR = "../Corrosion_Dataset/labels/"
+TEST_CATDIR = "../Corrosion_Dataset/test/defects/"
+TEST_LABELDIR = "../Corrosion_Dataset/test/labels/"
 CAT1            = "rust"
 CAT2            = "nonrust"
 CAT1_ONEHOT     = [1,0]
@@ -16,7 +18,7 @@ LEARNING_RATE = 0.001               #Learning rate for training the CNN
 CNN_LOCAL1 = 32                  #Number of features output for conv layer 1
 CNN_GLOBAL = 32                  #Number of features output for conv layer 1
 CLASSES      = 2
-CNN_EPOCHS       = 1000
+CNN_EPOCHS       = 2000
 CNN_FULL1   = 200                #Number of features output for fully connected layer1
 FULL_IMGSIZE = 500
 IMG_SIZE = 30

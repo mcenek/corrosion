@@ -4,7 +4,7 @@ import numpy as np
 import os
 import sys
 
-BORDER = 15
+BORDER = 30
 
 #get dice score for binary image
 def dice(img,gt,fout='dice_output.txt',writemode='w'):
@@ -17,20 +17,6 @@ def dice(img,gt,fout='dice_output.txt',writemode='w'):
     FN = float(np.count_nonzero(cv2.bitwise_and(cv2.bitwise_not(img),gt)))
     P = TP + FN
     N = TN + FP
-
-    #for debugging purposes
-    '''
-    binary1 = np.count_nonzero(np.all(img == 0,axis = 1),dtype=np.uint8)
-    binary2 = np.array(np.all(gt == 0,axis = 1),dtype=np.uint8)
-    b1_and_b2 = np.array(np.logical_and(binary1,binary2),dtype=np.uint8)
-    binary1[binary1 == 1] = 255
-    binary2[binary2 == 1] = 255
-    b1_and_b2[b1_and_b2 == 1] = 255
-    cv2.imshow('binary1',cv2.resize(binary1,(500,500),interpolation=cv2.INTER_CUBIC))
-    cv2.imshow('binary2',cv2.resize(binary2,(500,500),interpolation=cv2.INTER_CUBIC))
-    cv2.imshow('b1_and_b2',cv2.resize(b1_and_b2,(500,500),interpolation=cv2.INTER_CUBIC))
-    cv2.waitKey(0)
-    '''
 
     PREC = (TP) / (TP + FP)
     ACC = (TP + TN) / (P + N)
@@ -76,17 +62,49 @@ if __name__ == '__main__':
 
     #WHEN DICING A directory
     if len(sys.argv) == 3 and os.path.isdir(sys.argv[1]):
-        dir1 = sys.argv[1]
-        dir2 = sys.argv[2]
-        if not os.path.isdir(dir1):
-            print('%s is not a directory!' % dir1)
+        imgdir = sys.argv[1]
+        gtdir = sys.argv[2]
+        if not os.path.isdir(imgdir):
+            print('%s is not a directory!' % imgdir)
             sys.exit()
-        if not os.path.isfile(dir2):
-            print('$s is not a file!' % dir2)
+        if not os.path.isdir(gtdir):
+            print('%s is not a file!' % gtdir)
             sys.exit()
         #output to results directory
         if not os.path.exists('results'):
             os.makedirs('results')
+
+        for f in os.listdir(imgdir):
+
+            #get the paths to images
+            full_imgpath = os.path.join(imgdir,f)
+            index = f.index('_model_')
+            full_gtpath = os.path.join(gtdir,f[:index] + 'gt.jpg')
+
+            #read the images
+            img = cv2.imread(full_imgpath,0)
+            gt = cv2.imread(full_gtpath,0)
+
+            #make sure the shapes match
+            h,w = img.shape
+            h2,w2 = gt.shape
+            if h != h2 or w != w2:
+                gt = cv2.resize(gt,(h,w),interpolation = cv2.INTER_CUBIC)
+
+            #make the image binary just in case it turns gray during resizing or the image just is not binary
+            gt[gt != 255] = 0
+            img[img != 255] = 0
+
+            #create file name
+            fname = "RESULTS_" + str(os.path.splitext(os.path.basename(f))[0]) + ".txt"
+            fout = os.path.join('results',fname)
+
+            #apply dice score calculation while removing the border
+            h_low = BORDER
+            h_high = h - BORDER - 1
+            w_low = BORDER
+            w_high = w - BORDER - 1
+            acc_score,dice_score = dice(img[h_low:h_high,w_low:w_high] ,gt[h_low:h_high,w_low:w_high],fout,writemode='w')
 
     #WHEN DICING A SINGLE IMAGE
     elif len(sys.argv) == 3 and os.path.isfile(sys.argv[1]):
