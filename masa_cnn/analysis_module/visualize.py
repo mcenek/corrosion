@@ -6,6 +6,7 @@ import cv2
 import time
 import re
 import pickle
+import feature as f
 import gabor_threads_roi as gabor
 import os
 
@@ -28,6 +29,7 @@ ldaflag = 'lda' in sys.argv
 wtflag = 'wt' in sys.argv
 bifflag = 'bif' in sys.argv
 blurflag = 'blur' in sys.argv
+domcolorflag = 'domcolor' in sys.argv
 #Check system argument length and mode
 #if mode is bin do 3d color binning
 start_time = time.time()
@@ -80,6 +82,23 @@ def display(original,labels=None,SHOWFLAG=True):
         if SHOWFLAG:
             print(size)
         return size
+
+    #if mode is dominant colors:
+    elif domcolorflag:
+
+        centers = f.k_means_color(original)
+        cv2.imshow('original image',original)
+        for i,c in enumerate(centers):
+            tmp = np.full((100,100,3),c)
+            cv2.imshow('dom color ' + str(i),tmp)
+        cv2.waitKey(0)
+
+        return 1
+
+    #if mode is texture
+    elif textureflag:
+
+        return 1
 
     #if mode is hog, show hog feature vector of image
     elif hogflag:
